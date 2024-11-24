@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Video Object Classifier</title>
+  <style>
+    #video-container { position: relative; }
+    #bounding-box { pointer-events: none; position: absolute; border: 2px solid red; display: none; }
+  </style>
+</head>
+<body>
+  <div id="video-container">
+    <video id="video" crossorigin="anonymous" width="640" height="480" controls>
+      <source src="giant-pikachu.mp4" type="video/mp4">
+    </video>
+    <div id="bounding-box"></div>
+  </div>
+  <canvas id="canvas" style="display:none;"></canvas>
+  <div id="output-div" style="text-align: center; width: 640px; font-size: 20px;">Pikachu</div>
+  <script>
+    const video = document.getElementById("video");
+    const boundingBox = document.getElementById("bounding-box");
+    const canvas = document.getElementById("canvas");
+    let startX, startY, endX, endY;
+
+    video.addEventListener("click", (e) => {
+      const rect = video.getBoundingClientRect();
+      const scaleX = video.videoWidth / rect.width;
+      const scaleY = video.videoHeight / rect.height;
+
+      const clickX = (e.clientX - rect.left) * scaleX;
+      const clickY = (e.clientY - rect.top) * scaleY;
+
+      const boxWidth = 300; // Desired crop width
+      const boxHeight = 300; // Desired crop height
+      startX = Math.max(0, Math.min(clickX - boxWidth / 2, video.videoWidth - boxWidth));
+      startY = Math.max(0, Math.min(clickY - boxHeight / 2, video.videoHeight - boxHeight));
+
+      boundingBox.style.left = `${e.clientX - rect.left - boxWidth / 2}px`;
+      boundingBox.style.top = `${e.clientY - rect.top - boxHeight / 2}px`;
+      boundingBox.style.width = `${boxWidth}px`;
+      boundingBox.style.height = `${boxHeight}px`;
+      boundingBox.style.display = "block";
+
+      canvas.width = boxWidth;
+      canvas.height = boxHeight;
+      const ctx = canvas.getContext("2d");
+      video.crossOrigin = "anonymous";
+
+      ctx.drawImage(video, startX, startY, boxWidth, boxHeight, 0, 0, boxWidth, boxHeight);
+
+     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      classifyImage(canvas);
+    });
+
+    async function classifyImage(canvas) {
+      const imageData = canvas.toDataURL("image/png");
+      
+      const result = await fetch('http://127.0.0.1:5000/classify', 
+      { method: 'POST',
+        headers: {
+        'Content-Type': 'application/json'
+        },      
+        body: JSON.stringify({ image: imageData }) 
+      }
+      );
+      
+      const { label } = await result.json();
+      document.querySelector('#output-div').textContent = label;
+    }
+  </script>
+</body>
+</html>
+
