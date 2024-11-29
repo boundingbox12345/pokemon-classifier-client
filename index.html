@@ -68,6 +68,11 @@
       
       const { label } = await result.json();
       document.querySelector('#output-div').textContent = label;
+      const labelSpoken = new SpeechSynthesisUtterance(label);
+      labelSpoken.pitch = 1;
+      labelSpoken.rate = 1;
+      labelSpoken.volume = 1;
+      window.speechSynthesis.speak(labelSpoken);
     }
   </script>
 </body>
